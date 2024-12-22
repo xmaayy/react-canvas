@@ -50,10 +50,10 @@ export function Chat({
     },
   });
 
-  const { data: votes } = useSWR<Array<Vote>>(
-    `/api/vote?chatId=${id}`,
-    fetcher,
-  );
+  //const { data: votes } = useSWR<Array<Vote>>(
+  //  `/api/vote?chatId=${id}`,
+  //  fetcher,
+  //);
 
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const isBlockVisible = useBlockSelector((state) => state.isVisible);
@@ -71,7 +71,7 @@ export function Chat({
         <Messages
           chatId={id}
           isLoading={isLoading}
-          votes={votes}
+          votes={[]}
           messages={messages}
           setMessages={setMessages}
           reload={reload}
@@ -111,7 +111,7 @@ export function Chat({
         messages={messages}
         setMessages={setMessages}
         reload={reload}
-        votes={votes}
+        votes={[]}
         isReadonly={isReadonly}
       />
     </>

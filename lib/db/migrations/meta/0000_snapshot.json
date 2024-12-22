@@ -2,93 +2,44 @@
   "id": "715ec9ec-6715-4d0f-9f6c-9b5c7f09827c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
-  "dialect": "postgresql",
+  "dialect": "sqlite",
   "tables": {
-    "public.Chat": {
+    "Chat": {
       "name": "Chat",
-      "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
+          "notNull": true
         },
         "createdAt": {
           "name": "createdAt",
-          "type": "timestamp",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
         "messages": {
           "name": "messages",
-          "type": "json",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
         "userId": {
           "name": "userId",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         }
       },
-      "indexes": {},
       "foreignKeys": {
         "Chat_userId_User_id_fk": {
-          "name": "Chat_userId_User_id_fk",
           "tableFrom": "Chat",
           "tableTo": "User",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"]
         }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
-    },
-    "public.User": {
-      "name": "User",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "email": {
-          "name": "email",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "password": {
-          "name": "password",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      }
     }
-  },
-  "enums": {},
-  "schemas": {},
-  "sequences": {},
-  "_meta": {
-    "columns": {},
-    "schemas": {},
-    "tables": {}
   }
 }

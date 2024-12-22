@@ -1,39 +1,29 @@
 CREATE TABLE IF NOT EXISTS "Suggestion" (
-	"id" uuid DEFAULT gen_random_uuid() NOT NULL,
-	"documentId" uuid NOT NULL,
-	"documentCreatedAt" timestamp NOT NULL,
-	"originalText" text NOT NULL,
-	"suggestedText" text NOT NULL,
-	"description" text,
-	"isResolved" boolean DEFAULT false NOT NULL,
-	"userId" uuid NOT NULL,
-	"createdAt" timestamp NOT NULL,
-	CONSTRAINT "Suggestion_id_pk" PRIMARY KEY("id")
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "documentId" TEXT NOT NULL,
+    "documentCreatedAt" TEXT NOT NULL,
+    "originalText" TEXT NOT NULL,
+    "suggestedText" TEXT NOT NULL,
+    "description" TEXT,
+    "isResolved" INTEGER DEFAULT 0 NOT NULL,
+    "userId" TEXT NOT NULL,
+    "createdAt" TEXT NOT NULL,
+    FOREIGN KEY ("userId") REFERENCES "User" ("id"),
+    FOREIGN KEY ("documentId", "documentCreatedAt") REFERENCES "Document" ("id", "createdAt")
 );
---> statement-breakpoint
+
 CREATE TABLE IF NOT EXISTS "Document" (
-	"id" uuid DEFAULT gen_random_uuid() NOT NULL,
-	"createdAt" timestamp NOT NULL,
-	"title" text NOT NULL,
-	"content" text,
-	"userId" uuid NOT NULL,
-	CONSTRAINT "Document_id_createdAt_pk" PRIMARY KEY("id","createdAt")
+    "id" TEXT NOT NULL,
+    "createdAt" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "content" TEXT,
+    "userId" TEXT NOT NULL,
+    PRIMARY KEY ("id", "createdAt"),
+    FOREIGN KEY ("userId") REFERENCES "User" ("id")
 );
---> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "Suggestion" ADD CONSTRAINT "Suggestion_userId_User_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE no action ON UPDATE no action;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "Suggestion" ADD CONSTRAINT "Suggestion_documentId_documentCreatedAt_Document_id_createdAt_fk" FOREIGN KEY ("documentId","documentCreatedAt") REFERENCES "public"."Document"("id","createdAt") ON DELETE no action ON UPDATE no action;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "Document" ADD CONSTRAINT "Document_userId_User_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE no action ON UPDATE no action;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
+
+CREATE TABLE IF NOT EXISTS "User" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "email" TEXT NOT NULL,
+    "password" TEXT
+);

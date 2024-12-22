@@ -11,6 +11,10 @@ export const authConfig = {
   ],
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
+      // We are making this offline only for now -- Offline only means we dont need auth. However, it should be easy
+      // to reenable auth here in the future with an existing NextAuth implementation and we can push it into the same
+      // SQLite Db that drizzle is using.
+
       const isLoggedIn = !!auth?.user;
       const isOnChat = nextUrl.pathname.startsWith('/');
       const isOnRegister = nextUrl.pathname.startsWith('/register');

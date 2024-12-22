@@ -1,9 +1,9 @@
 import 'server-only';
 
-import { genSaltSync, hashSync } from 'bcrypt-ts';
+import { createClient } from '@libsql/client';
+import { drizzle } from 'drizzle-orm/libsql';
 import { and, asc, desc, eq, gt, gte } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
+import { genSaltSync, hashSync } from 'bcrypt-ts';
 
 import {
   user,
@@ -18,14 +18,17 @@ import {
 } from './schema';
 import { BlockKind } from '@/components/block';
 
-// Optionally, if not using email/pass login, you can
-// use the Drizzle adapter for Auth.js / NextAuth
-// https://authjs.dev/reference/adapter/drizzle
-
-// biome-ignore lint: Forbidden non-null assertion.
-const client = postgres(process.env.POSTGRES_URL!);
+/**
+ * Create the database client and Drizzle instance for SQLite
+ */
+const client = createClient({
+  url: process.env.DATABASE_URL!, // e.g. file:./mydb.sqlite or a libsql endpoint
+});
 const db = drizzle(client);
 
+/** 
+ * Get a user by email 
+ */
 export async function getUser(email: string): Promise<Array<User>> {
   try {
     return await db.select().from(user).where(eq(user.email, email));
@@ -35,18 +38,26 @@ export async function getUser(email: string): Promise<Array<User>> {
   }
 }
 
+/** 
+ * Create a new user (email/password)
+ */
 export async function createUser(email: string, password: string) {
   const salt = genSaltSync(10);
   const hash = hashSync(password, salt);
 
   try {
-    return await db.insert(user).values({ email, password: hash });
+    return await db.insert(user).values({ id: crypto.randomUUID(), email, password: hash });
   } catch (error) {
     console.error('Failed to create user in database');
     throw error;
   }
 }
 
+/**
+ * Save a new Chat
+ * IMPORTANT: store createdAt as an ISO string because
+ * your schema’s createdAt is declared as text.
+ */
 export async function saveChat({
   id,
   userId,
@@ -59,7 +70,7 @@ export async function saveChat({
   try {
     return await db.insert(chat).values({
       id,
-      createdAt: new Date(),
+      createdAt: new Date().toISOString(), // store as text
       userId,
       title,
     });
@@ -69,6 +80,9 @@ export async function saveChat({
   }
 }
 
+/**
+ * Delete a chat by ID (also deletes votes and messages for that chat)
+ */
 export async function deleteChatById({ id }: { id: string }) {
   try {
     await db.delete(vote).where(eq(vote.chatId, id));
@@ -81,6 +95,9 @@ export async function deleteChatById({ id }: { id: string }) {
   }
 }
 
+/**
+ * Get all chats for a user, ordered descending by createdAt
+ */
 export async function getChatsByUserId({ id }: { id: string }) {
   try {
     return await db
@@ -94,6 +111,9 @@ export async function getChatsByUserId({ id }: { id: string }) {
   }
 }
 
+/**
+ * Get a single chat by ID
+ */
 export async function getChatById({ id }: { id: string }) {
   try {
     const [selectedChat] = await db.select().from(chat).where(eq(chat.id, id));
@@ -104,6 +124,9 @@ export async function getChatById({ id }: { id: string }) {
   }
 }
 
+/**
+ * Save a batch of messages
+ */
 export async function saveMessages({ messages }: { messages: Array<Message> }) {
   try {
     return await db.insert(message).values(messages);
@@ -113,6 +136,9 @@ export async function saveMessages({ messages }: { messages: Array<Message> }) {
   }
 }
 
+/**
+ * Get all messages for a chat, ordered ascending by createdAt
+ */
 export async function getMessagesByChatId({ id }: { id: string }) {
   try {
     return await db
@@ -126,6 +152,10 @@ export async function getMessagesByChatId({ id }: { id: string }) {
   }
 }
 
+/**
+ * Upvote/downvote a message
+ * Remember isUpvoted is stored as an integer (0 or 1).
+ */
 export async function voteMessage({
   chatId,
   messageId,
@@ -141,16 +171,18 @@ export async function voteMessage({
       .from(vote)
       .where(and(eq(vote.messageId, messageId)));
 
+    const isUpvotedInt = type === 'up' ? 1 : 0;
+
     if (existingVote) {
       return await db
         .update(vote)
-        .set({ isUpvoted: type === 'up' })
+        .set({ isUpvoted: isUpvotedInt })
         .where(and(eq(vote.messageId, messageId), eq(vote.chatId, chatId)));
     }
     return await db.insert(vote).values({
       chatId,
       messageId,
-      isUpvoted: type === 'up',
+      isUpvoted: isUpvotedInt,
     });
   } catch (error) {
     console.error('Failed to upvote message in database', error);
@@ -158,6 +190,9 @@ export async function voteMessage({
   }
 }
 
+/**
+ * Get votes by chat ID
+ */
 export async function getVotesByChatId({ id }: { id: string }) {
   try {
     return await db.select().from(vote).where(eq(vote.chatId, id));
@@ -167,6 +202,9 @@ export async function getVotesByChatId({ id }: { id: string }) {
   }
 }
 
+/**
+ * Save a new Document
+ */
 export async function saveDocument({
   id,
   title,
@@ -187,7 +225,7 @@ export async function saveDocument({
       kind,
       content,
       userId,
-      createdAt: new Date(),
+      createdAt: new Date().toISOString(), // store date as ISO string
     });
   } catch (error) {
     console.error('Failed to save document in database');
@@ -195,6 +233,10 @@ export async function saveDocument({
   }
 }
 
+/**
+ * Get all documents by ID (all "versions" of that document),
+ * ordered ascending by createdAt
+ */
 export async function getDocumentsById({ id }: { id: string }) {
   try {
     const documents = await db
@@ -210,6 +252,9 @@ export async function getDocumentsById({ id }: { id: string }) {
   }
 }
 
+/**
+ * Get a single document (the "latest" one, descending by createdAt)
+ */
 export async function getDocumentById({ id }: { id: string }) {
   try {
     const [selectedDocument] = await db
@@ -225,6 +270,9 @@ export async function getDocumentById({ id }: { id: string }) {
   }
 }
 
+/**
+ * Delete documents with given ID that have a createdAt AFTER a specified timestamp
+ */
 export async function deleteDocumentsByIdAfterTimestamp({
   id,
   timestamp,
@@ -233,18 +281,22 @@ export async function deleteDocumentsByIdAfterTimestamp({
   timestamp: Date;
 }) {
   try {
+    const isoTimestamp = timestamp.toISOString();
+
+    // First delete suggestions referencing those document versions
     await db
       .delete(suggestion)
       .where(
         and(
           eq(suggestion.documentId, id),
-          gt(suggestion.documentCreatedAt, timestamp),
+          gt(suggestion.documentCreatedAt, isoTimestamp),
         ),
       );
 
+    // Then delete the document versions
     return await db
       .delete(document)
-      .where(and(eq(document.id, id), gt(document.createdAt, timestamp)));
+      .where(and(eq(document.id, id), gt(document.createdAt, isoTimestamp)));
   } catch (error) {
     console.error(
       'Failed to delete documents by id after timestamp from database',
@@ -253,6 +305,9 @@ export async function deleteDocumentsByIdAfterTimestamp({
   }
 }
 
+/**
+ * Save a batch of suggestions
+ */
 export async function saveSuggestions({
   suggestions,
 }: {
@@ -266,6 +321,9 @@ export async function saveSuggestions({
   }
 }
 
+/**
+ * Get all suggestions for a given document (all versions)
+ */
 export async function getSuggestionsByDocumentId({
   documentId,
 }: {
@@ -284,6 +342,9 @@ export async function getSuggestionsByDocumentId({
   }
 }
 
+/**
+ * Get a message by ID
+ */
 export async function getMessageById({ id }: { id: string }) {
   try {
     return await db.select().from(message).where(eq(message.id, id));
@@ -293,6 +354,9 @@ export async function getMessageById({ id }: { id: string }) {
   }
 }
 
+/**
+ * Delete messages in a given chat that were created AFTER a specified timestamp
+ */
 export async function deleteMessagesByChatIdAfterTimestamp({
   chatId,
   timestamp,
@@ -301,10 +365,11 @@ export async function deleteMessagesByChatIdAfterTimestamp({
   timestamp: Date;
 }) {
   try {
+    const isoTimestamp = timestamp.toISOString();
     return await db
       .delete(message)
       .where(
-        and(eq(message.chatId, chatId), gte(message.createdAt, timestamp)),
+        and(eq(message.chatId, chatId), gte(message.createdAt, isoTimestamp)),
       );
   } catch (error) {
     console.error(
@@ -314,6 +379,9 @@ export async function deleteMessagesByChatIdAfterTimestamp({
   }
 }
 
+/**
+ * Update a chat's visibility
+ */
 export async function updateChatVisiblityById({
   chatId,
   visibility,
