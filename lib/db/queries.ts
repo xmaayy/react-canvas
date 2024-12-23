@@ -128,6 +128,7 @@ export async function getChatById({ id }: { id: string }) {
  * Save a batch of messages
  */
 export async function saveMessages({ messages }: { messages: Array<Message> }) {
+  console.log('messages', messages);
   try {
     return await db.insert(message).values(messages);
   } catch (error) {

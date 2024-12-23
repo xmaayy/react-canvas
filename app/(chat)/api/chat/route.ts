@@ -89,7 +89,7 @@ export async function POST(request: Request) {
 
   await saveMessages({
     messages: [
-      { ...userMessage, id: userMessageId, createdAt: new Date(), chatId: id },
+      { ...userMessage, id: userMessageId, createdAt: new Date().toISOString(), chatId: id, content: JSON.stringify(userMessage.content) },
     ],
   });
 
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
       });
 
       const result = streamText({
-        model: customModel(model.apiIdentifier),
+        model: customModel(model),
         system: systemPrompt,
         messages: coreMessages,
         maxSteps: 5,
@@ -155,7 +155,7 @@ export async function POST(request: Request) {
 
               if (kind === 'text') {
                 const { fullStream } = streamText({
-                  model: customModel(model.apiIdentifier),
+                  model: customModel(model),
                   system:
                     'Write about the given topic. Markdown is supported. Use headings wherever appropriate.',
                   prompt: title,
@@ -178,7 +178,7 @@ export async function POST(request: Request) {
                 dataStream.writeData({ type: 'finish', content: '' });
               } else if (kind === 'code') {
                 const { fullStream } = streamObject({
-                  model: customModel(model.apiIdentifier),
+                  model: customModel(model),
                   system: codePrompt,
                   prompt: title,
                   schema: z.object({
@@ -253,7 +253,7 @@ export async function POST(request: Request) {
 
               if (document.kind === 'text') {
                 const { fullStream } = streamText({
-                  model: customModel(model.apiIdentifier),
+                  model: customModel(model),
                   system: updateDocumentPrompt(currentContent),
                   prompt: description,
                   experimental_providerMetadata: {
@@ -283,7 +283,7 @@ export async function POST(request: Request) {
                 dataStream.writeData({ type: 'finish', content: '' });
               } else if (document.kind === 'code') {
                 const { fullStream } = streamObject({
-                  model: customModel(model.apiIdentifier),
+                  model: customModel(model),
                   system: updateDocumentPrompt(currentContent),
                   prompt: description,
                   schema: z.object({
@@ -351,7 +351,7 @@ export async function POST(request: Request) {
               > = [];
 
               const { elementStream } = streamObject({
-                model: customModel(model.apiIdentifier),
+                model: customModel(model),
                 system:
                   'You are a help writing assistant. Given a piece of writing, please offer suggestions to improve the piece of writing and describe the change. It is very important for the edits to contain full sentences instead of just words. Max 5 suggestions.',
                 prompt: document.content,
@@ -414,7 +414,6 @@ export async function POST(request: Request) {
             try {
               const responseMessagesWithoutIncompleteToolCalls =
                 sanitizeResponseMessages(response.messages);
-
               await saveMessages({
                 messages: responseMessagesWithoutIncompleteToolCalls.map(
                   (message) => {
@@ -426,11 +425,26 @@ export async function POST(request: Request) {
                       });
                     }
 
+                    let finalContent: string;
+                    if (typeof message.content === 'string') {
+                      finalContent = message.content;
+                    } else if (Array.isArray(message.content)) {
+                      // Assuming the first element has the text
+                      if ('text' in message.content[0]) {
+                        finalContent = message.content[0].text;
+                      } else {
+                        finalContent = '';
+                      }
+                    } else {
+                      finalContent = '';
+                    }
+                    
+                    console.log("Message Content", finalContent);
                     return {
                       id: messageId,
                       chatId: id,
                       role: message.role,
-                      content: message.content,
+                      content: finalContent,
                       createdAt: new Date(),
                     };
                   },
