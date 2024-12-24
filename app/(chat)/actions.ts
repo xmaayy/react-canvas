@@ -1,29 +1,32 @@
-'use server';
+"use server";
 
-import { type CoreUserMessage, generateText } from 'ai';
-import { cookies } from 'next/headers';
+import { type CoreUserMessage, generateText } from "ai";
+import { cookies } from "next/headers";
 
-import { customModel } from '@/lib/ai';
+import { customModel } from "@/lib/ai";
 import {
   deleteMessagesByChatIdAfterTimestamp,
   getMessageById,
   updateChatVisiblityById,
-} from '@/lib/db/queries';
-import { VisibilityType } from '@/components/visibility-selector';
-import { models } from '@/lib/ai/models';
+} from "@/lib/db/queries";
+import { VisibilityType } from "@/components/visibility-selector";
+import { models } from "@/lib/ai/models";
 
 export async function saveModelId(model: string) {
   const cookieStore = await cookies();
-  cookieStore.set('model-id', model);
+  cookieStore.set("model-id", model);
 }
 
 export async function generateTitleFromUserMessage({
   message,
+  modelId,
 }: {
   message: CoreUserMessage;
+  modelId: string;
 }) {
+  const model = models.find((model) => model.id === modelId);
   const { text: title } = await generateText({
-    model: customModel(models[4]),
+    model: customModel(model!),
     system: `\n
     - you will generate a short title based on the first message a user begins a conversation with
     - ensure it is not more than 80 characters long
