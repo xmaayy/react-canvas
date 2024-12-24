@@ -1,6 +1,7 @@
-import { openai } from '@ai-sdk/openai';
+import { openai, createOpenAI } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
 import { groq } from '@ai-sdk/groq';
+import { createOllama } from 'ollama-ai-provider';
 import { experimental_wrapLanguageModel as wrapLanguageModel } from 'ai';
 import { Model } from './models';
 
@@ -14,6 +15,11 @@ const getProvider = (provider: string, apiIdentifier: string) => {
       return google(apiIdentifier);
     case 'groq':
       return groq(apiIdentifier);
+    case 'ollama':
+      return createOpenAI({
+        baseURL: 'http://localhost:11434/v1',
+        apiKey: 'ollama', // required but unused
+      }).languageModel(apiIdentifier);
     default:
       throw new Error(`Unsupported provider: ${provider}`);
   }

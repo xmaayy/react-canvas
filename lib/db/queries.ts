@@ -130,7 +130,11 @@ export async function getChatById({ id }: { id: string }) {
 export async function saveMessages({ messages }: { messages: Array<Message> }) {
   console.log('messages', messages);
   try {
-    return await db.insert(message).values(messages);
+    const serializedMessages = messages.map((m) => ({
+      ...m,
+      content: JSON.stringify(m.content),
+    }));
+    return await db.insert(message).values(serializedMessages);
   } catch (error) {
     console.error('Failed to save messages in database', error);
     throw error;
@@ -142,11 +146,15 @@ export async function saveMessages({ messages }: { messages: Array<Message> }) {
  */
 export async function getMessagesByChatId({ id }: { id: string }) {
   try {
-    return await db
+    const rows = await db
       .select()
       .from(message)
       .where(eq(message.chatId, id))
       .orderBy(asc(message.createdAt));
+    return rows.map((r) => ({
+      ...r,
+      content: JSON.parse(r.content as string),
+    }));
   } catch (error) {
     console.error('Failed to get messages by chat id from database', error);
     throw error;

@@ -11,7 +11,7 @@ export interface Model {
   label: string;
   apiIdentifier: string;
   description: string;
-  provider: 'openai' | 'google' | 'groq';
+  provider: 'openai' | 'google' | 'groq' | "ollama";
 }
 
 export const models: Array<Model> = [
@@ -63,6 +63,13 @@ export const models: Array<Model> = [
     apiIdentifier: 'gemini-2.0-flash-thinking-exp-1219',
     provider: 'google',
     description: 'Fast and Accurate Model',
+  },
+  {
+    id: 'qwen2.5:32b',
+    label: 'Qwen 2.5 32B',
+    apiIdentifier: 'qwen2.5:32b',
+    provider: 'ollama',
+    description: 'Good tool calling, small params',
   },
 ] as const;
 

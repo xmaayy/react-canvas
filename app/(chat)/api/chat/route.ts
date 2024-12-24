@@ -412,6 +412,7 @@ export async function POST(request: Request) {
         onFinish: async ({ response }) => {
           if (session.user?.id) {
             try {
+              console.log("Unsanitized Response", JSON.stringify(response.messages));
               const responseMessagesWithoutIncompleteToolCalls =
                 sanitizeResponseMessages(response.messages);
               await saveMessages({
@@ -425,27 +426,15 @@ export async function POST(request: Request) {
                       });
                     }
 
-                    let finalContent: string;
-                    if (typeof message.content === 'string') {
-                      finalContent = message.content;
-                    } else if (Array.isArray(message.content)) {
-                      // Assuming the first element has the text
-                      if ('text' in message.content[0]) {
-                        finalContent = message.content[0].text;
-                      } else {
-                        finalContent = '';
-                      }
-                    } else {
-                      finalContent = '';
-                    }
+                    //let finalContent: string = JSON.stringify(message.content);
                     
-                    console.log("Message Content", finalContent);
+                    //console.log("Message Content", finalContent);
                     return {
                       id: messageId,
                       chatId: id,
                       role: message.role,
-                      content: finalContent,
-                      createdAt: new Date(),
+                      content: message.content,
+                      createdAt: new Date().toISOString(),
                     };
                   },
                 ),
@@ -455,6 +444,7 @@ export async function POST(request: Request) {
             }
           }
         },
+        
         experimental_telemetry: {
           isEnabled: true,
           functionId: 'stream-text',
@@ -462,6 +452,10 @@ export async function POST(request: Request) {
       });
 
       result.mergeIntoDataStream(dataStream);
+    },
+    onError(error) {
+      console.error('Error:', error);
+      return "An error occurred while processing your request";
     },
   });
 }
