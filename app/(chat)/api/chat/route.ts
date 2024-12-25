@@ -59,15 +59,26 @@ export async function POST(request: Request) {
   }: { id: string; messages: Array<Message>; modelId: string } =
     await request.json();
 
+  // We're doing something a bit weird here and allowing the user to send multiple
+  // models in one string because with offline models you generally have a 'stable' of
+  // them that work better for different tasks. This is a bit of a hack to get around
+  // the fact that we can't send multiple models in the request. The JSON structure is
+  // "{ chat: "llama3.2", code: "gemini-2.0-flash-exp", text: "llama-3.3-70b-alt" }""
+  const {
+    chat: chatModelId,
+    code: codeModelId,
+    text: textModelId,
+  } = JSON.parse(modelId);
+
   const session = await auth();
 
   if (!session || !session.user || !session.user.id) {
     return new Response("Unauthorized", { status: 401 });
   }
-  const model = models.find((model) => model.id === modelId);
+  const chatModel = models.find((model) => model.id === chatModelId);
 
-  console.log(modelId, model);
-  if (!model) {
+  console.log("Models", modelId, "Chat", chatModel);
+  if (!chatModel) {
     return new Response("Model not found", { status: 404 });
   }
 
@@ -83,7 +94,7 @@ export async function POST(request: Request) {
   if (!chat) {
     const title = await generateTitleFromUserMessage({
       message: userMessage,
-      modelId: modelId,
+      modelId: chatModelId,
     });
     await saveChat({ id, userId: session.user.id, title });
   }
@@ -108,9 +119,9 @@ export async function POST(request: Request) {
         type: "user-message-id",
         content: userMessageId,
       });
-
+      console.log("User Message", userMessage, chatModel);
       const result = streamText({
-        model: customModel(model),
+        model: customModel(chatModel),
         system: systemPrompt,
         messages: coreMessages,
         maxSteps: 5,
@@ -172,7 +183,7 @@ export async function POST(request: Request) {
                 console.debug(`ROUTE - CREATE DOC - ${generationDescription}`);
                 const { fullStream } = streamText({
                   model: customModel(
-                    models.find((model) => model.id === "llama3.2")!
+                    models.find((model) => model.id === textModelId)!
                   ),
                   system:
                     "Write about the given topic. Markdown is supported. Use headings wherever appropriate. Details from the user message should be prioritized over other details.",
@@ -198,7 +209,7 @@ export async function POST(request: Request) {
                 console.debug(`ROUTE - CREATE CODE - ${generationDescription}`);
                 const { fullStream } = streamObject({
                   model: customModel(
-                    models.find((model) => model.id === "llama3.2")!
+                    models.find((model) => model.id === codeModelId)!
                   ),
                   system: codePrompt,
                   prompt: generationDescription,
@@ -274,7 +285,9 @@ export async function POST(request: Request) {
 
               if (document.kind === "text") {
                 const { fullStream } = streamText({
-                  model: customModel(model),
+                  model: customModel(
+                    models.find((model) => model.id === textModelId)!
+                  ),
                   system: updateDocumentPrompt(currentContent),
                   prompt: description,
                   experimental_providerMetadata: {
@@ -304,7 +317,9 @@ export async function POST(request: Request) {
                 dataStream.writeData({ type: "finish", content: "" });
               } else if (document.kind === "code") {
                 const { fullStream } = streamObject({
-                  model: customModel(model),
+                  model: customModel(
+                    models.find((model) => model.id === codeModelId)!
+                  ),
                   system: updateDocumentPrompt(currentContent),
                   prompt: description,
                   schema: z.object({
@@ -372,7 +387,9 @@ export async function POST(request: Request) {
               > = [];
 
               const { elementStream } = streamObject({
-                model: customModel(model),
+                model: customModel(
+                  models.find((model) => model.id === textModelId)!
+                ),
                 system:
                   "You are a help writing assistant. Given a piece of writing, please offer suggestions to improve the piece of writing and describe the change. It is very important for the edits to contain full sentences instead of just words. Max 5 suggestions.",
                 prompt: document.content,
@@ -452,7 +469,6 @@ export async function POST(request: Request) {
 
                     //let finalContent: string = JSON.stringify(message.content);
 
-                    //console.log("Message Content", finalContent);
                     return {
                       id: messageId,
                       chatId: id,

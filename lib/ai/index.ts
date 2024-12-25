@@ -27,7 +27,7 @@ const getProvider = (provider: string, apiIdentifier: string) => {
 };
 
 export const customModel = (model: Model) => {
-  console.log(model);
+  console.log("Model Wrapper", model);
   return wrapLanguageModel({
     model: getProvider(model.provider, model.apiIdentifier),
     middleware: customMiddleware,

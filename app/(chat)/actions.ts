@@ -13,6 +13,7 @@ import { VisibilityType } from "@/components/visibility-selector";
 import { models } from "@/lib/ai/models";
 
 export async function saveModelId(model: string) {
+  console.log("Saving model ids to cookies", model);
   const cookieStore = await cookies();
   cookieStore.set("model-id", model);
 }
