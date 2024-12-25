@@ -133,12 +133,13 @@ export async function POST(request: Request) {
           },
           createDocument: {
             description:
-              "Create a document for a writing activity. This tool will call other functions that will generate the contents of the document based on the title and kind.",
+              "When prompted for a document (kind: text) or code (kind: code), use this tool with a descriptive title and detailed description to inform a generator model about the users desired content, without directly creating it.",
             parameters: z.object({
               title: z.string(),
               kind: z.enum(["text", "code"]),
+              description: z.string(),
             }),
-            execute: async ({ title, kind }) => {
+            execute: async ({ title, kind, description }, { messages }) => {
               const id = generateUUID();
               let draftText = "";
 
@@ -162,12 +163,20 @@ export async function POST(request: Request) {
                 content: "",
               });
 
+              const lastMessage = JSON.stringify(
+                messages.at(messages.length - 1)?.content
+              );
+              const generationDescription = `${title} \n\n ${description} \n\n Last User Message:\n${lastMessage}`;
+
               if (kind === "text") {
+                console.debug(`ROUTE - CREATE DOC - ${generationDescription}`);
                 const { fullStream } = streamText({
-                  model: customModel(model),
+                  model: customModel(
+                    models.find((model) => model.id === "llama3.2")!
+                  ),
                   system:
-                    "Write about the given topic. Markdown is supported. Use headings wherever appropriate.",
-                  prompt: title,
+                    "Write about the given topic. Markdown is supported. Use headings wherever appropriate. Details from the user message should be prioritized over other details.",
+                  prompt: generationDescription,
                 });
 
                 for await (const delta of fullStream) {
@@ -186,10 +195,13 @@ export async function POST(request: Request) {
 
                 dataStream.writeData({ type: "finish", content: "" });
               } else if (kind === "code") {
+                console.debug(`ROUTE - CREATE CODE - ${generationDescription}`);
                 const { fullStream } = streamObject({
-                  model: customModel(model),
+                  model: customModel(
+                    models.find((model) => model.id === "llama3.2")!
+                  ),
                   system: codePrompt,
-                  prompt: title,
+                  prompt: generationDescription,
                   schema: z.object({
                     code: z.string(),
                   }),
@@ -231,7 +243,7 @@ export async function POST(request: Request) {
                 title,
                 kind,
                 content:
-                  "A document was created and is now visible to the user.",
+                  "The document was created and is now visible to the user. Inform them of this and end your turn.",
               };
             },
           },
