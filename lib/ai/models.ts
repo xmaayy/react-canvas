@@ -50,7 +50,7 @@ export const models: Array<Model> = [
     apiIdentifier: "llama-3.3-70b-specdec",
     provider: "groq",
     description: "Even faster 70B model with speculative decoding",
-    capabilities: { chat: false, text: true, code: false },
+    capabilities: { chat: true, text: true, code: false },
   },
   {
     id: "gemini-2.0-flash-exp",
@@ -65,7 +65,7 @@ export const models: Array<Model> = [
     label: "Gemini Experimental (12/06)",
     apiIdentifier: "gemini-exp-1206",
     provider: "google",
-    description: "Fast and Accurate Model",
+    description: "Slower but quite smart",
     capabilities: { chat: true, text: true, code: true },
   },
   {
@@ -73,7 +73,7 @@ export const models: Array<Model> = [
     label: "Gemini Thinking Flash 2 (Experimental 12/19)",
     apiIdentifier: "gemini-2.0-flash-thinking-exp-1219",
     provider: "google",
-    description: "Fast and Accurate Model",
+    description: "Quite slow, somtimes does not respond in the correct format",
     capabilities: { chat: true, text: true, code: true },
   },
   {
@@ -81,7 +81,7 @@ export const models: Array<Model> = [
     label: "Qwen 2.5 Coder 14B",
     apiIdentifier: "qwen2.5-coder:14b",
     provider: "ollama",
-    description: "Good tool calling, small params",
+    description: "Okay tool calling, good for the rest",
     capabilities: { chat: true, text: true, code: true },
   },
   {
@@ -89,7 +89,7 @@ export const models: Array<Model> = [
     label: "Llama3.2",
     apiIdentifier: "llama3.2",
     provider: "ollama",
-    description: "Good tool calling, small params",
+    description: "Good for quick tasks, frequently makes tool calling errors",
     capabilities: { chat: false, text: true, code: true },
   },
 ] as const;

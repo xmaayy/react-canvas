@@ -37,9 +37,13 @@ There is [OpenCanvas](https://github.com/langchain-ai/open-canvas) which is a LO
 
 ## Model Providers
 
-For each of the core features in LoCa you can choose a model; in general I find that most people have a preferred model for each task rather than a one-size-fits-all approach.
+For each of the core features in LoCa you can choose a model; in general I find that most people have a preferred model for each task rather than a one-size-fits-all approach. This also means its easy to change to another model if you run out of free quota :^)
 
-Currently supports OpenAI, Google, Groq and Ollama. Super easy to add more though, poke around in `lib/ai/models.ts` to see how you can add more. 
+<img alt="LoCa Model Selector" src="public/model-selector.png">
+
+Currently supports OpenAI, Google, Groq and Ollama. Super easy to add more though, poke around in `lib/ai/models.ts` to see how you can add more. You can leave comments on the models for yourself, and also disable using models for certain tasks where it does not perform well (many Open Source models will struggle with tool calling, but excel at writing and coding).
+
+Selected models are persisted to cookies, so you wont have to re-select them in each chat. You can also switch models in the middle of a chat to get different opinions on code/writing.
 
 ## Running locally
 
